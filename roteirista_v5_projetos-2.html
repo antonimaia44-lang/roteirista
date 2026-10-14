@@ -1,0 +1,148 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Roteirista V5 — Meus roteiros</title><style>:root{--bg:#11131a;--panel:#1b1e28;--line:#343849;--text:#f4f0e9;--muted:#aeb2c1;--accent:#e8bb78}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,Arial}header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}h1{font-size:19px;margin:0}small{color:var(--muted)}button,input,select{font:inherit}button{background:#303647;color:white;border:1px solid #4b5267;border-radius:8px;padding:9px 12px;cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:#17151a;border:0;font-weight:700}.layout{display:grid;grid-template-columns:245px minmax(0,1fr);min-height:calc(100vh - 68px)}aside{border-right:1px solid var(--line);padding:18px;background:var(--panel)}aside h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}.scene-link{display:block;width:100%;text-align:left;margin:7px 0;background:transparent;border-color:transparent;color:var(--text);font-size:13px;line-height:1.4}.scene-link:hover{background:#333746}.workspace{padding:22px 15px 60px;overflow:auto}.toolbar{max-width:820px;margin:0 auto 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.toolbar select{background:#272b38;color:white;border:1px solid var(--line);border-radius:8px;padding:9px}.page{max-width:820px;min-height:800px;margin:auto;background:#fffdf8;color:#242424;padding:65px clamp(24px,8%,90px);box-shadow:0 12px 45px #0006;border-radius:3px}.titleinput{width:100%;border:0;background:transparent;text-align:center;font-weight:700;font-size:23px;margin:0 0 35px;color:#222}.block{position:relative;margin:0 0 14px;min-height:24px;outline:0;white-space:pre-wrap;overflow-wrap:anywhere;font:16px/1.55 'Courier New',monospace}.block:empty:before{content:attr(data-placeholder);color:#aaa}.block.scene{font-weight:bold;text-transform:uppercase;margin-top:22px}.block.character{text-align:center;text-transform:uppercase;margin-left:20%;margin-right:20%;margin-bottom:2px}.block.dialogue{margin-left:18%;margin-right:18%}.block.transition{text-align:right;text-transform:uppercase}.block.parenthetical{text-align:center;margin-left:20%;margin-right:20%}.hint{max-width:820px;margin:14px auto;color:var(--muted);font-size:13px;line-height:1.6}.status{color:var(--muted);font-size:12px}.pill{display:inline-block;border:1px solid #6e6048;color:var(--accent);padding:3px 7px;border-radius:20px;font-size:12px}@media(max-width:700px){.layout{display:block}aside{border-right:0;border-bottom:1px solid var(--line);padding:10px 15px}#scenes{display:flex;overflow:auto;gap:6px}.scene-link{min-width:170px}.workspace{padding:12px 8px}.page{padding:40px 20px;min-height:65vh}.block{font-size:14px}.toolbar{gap:6px}.toolbar button{padding:8px}.block.dialogue{margin-left:12%;margin-right:12%}}</style></head><body><header><div><h1>🎬 Roteirista <span class="pill">Prévia funcional</span></h1><small>Editor de roteiro • otimizado para celular</small></div><div><span id="status" class="status">Pronto</span> <button id="new">Novo</button> <button id="export">Exportar .md</button> <button id="print" class="primary">Imprimir / PDF</button></div></header><div class="layout"><aside><h2>Cenas</h2><div id="scenes"></div><h2>Personagens</h2><div id="characters" style="color:var(--muted);font-size:13px;line-height:1.9"></div></aside><main class="workspace"><div class="toolbar"><label for="kind">Tipo de bloco</label><select id="kind"><option value="scene">Cena (INT./EXT.)</option><option value="action">Ação</option><option value="character">Personagem</option><option value="dialogue">Diálogo</option><option value="parenthetical">Rubrica</option><option value="transition">Transição</option></select><button id="add">+ Adicionar bloco</button><button id="remove">Excluir bloco</button><button id="import">Importar .md</button><input id="file" type="file" accept=".md,.txt" hidden></div><section class="page"><input id="title" class="titleinput" aria-label="Título do roteiro" placeholder="TÍTULO DO ROTEIRO"><div id="editor"></div></section><p class="hint"><b>Como usar:</b> clique em um bloco para editar. Pressione <b>Enter</b> para criar o próximo bloco automaticamente (Cena → Ação; Personagem → Diálogo; Diálogo → Personagem). Use <b>Tab</b> para alternar o tipo do bloco. Tudo é salvo automaticamente neste navegador. Exporte um Markdown para levar ao Obsidian.</p></main></div><script>
+const KEY='roteirista-preview-v1';const types=['scene','action','character','dialogue','parenthetical','transition'];const labels={scene:'INT. CASA - NOITE',action:'Descreva a ação...',character:'NOME DO PERSONAGEM',dialogue:'Escreva o diálogo...',parenthetical:'(uma indicação)',transition:'CORTA PARA:'};let data;let active=0;const $=id=>document.getElementById(id);const uid=()=>Math.random().toString(36).slice(2);function starter(){return {title:'MEU ROTEIRO',blocks:[{id:uid(),type:'scene',text:'INT. CASA - NOITE'},{id:uid(),type:'action',text:'A chuva bate contra a janela. Uma luz se acende no corredor.'},{id:uid(),type:'character',text:'ALICE'},{id:uid(),type:'dialogue',text:'Você também ouviu esse barulho?'},{id:uid(),type:'action',text:'Ela caminha lentamente até a porta.'}]}}try{data=JSON.parse(localStorage.getItem(KEY))||starter()}catch{data=starter()}if(!Array.isArray(data.blocks)||!data.blocks.length)data=starter();function save(){try{localStorage.setItem(KEY,JSON.stringify(data));$('status').textContent='Salvo automaticamente'}catch{$('status').textContent='Armazenamento indisponível'}}function focusBlock(i){const el=$('editor').children[i];if(el){el.focus();const r=document.createRange();r.selectNodeContents(el);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}}function sync(){const el=$('editor').children[active];if(el){data.blocks[active].text=el.innerText.replace(/\n$/,'');save();sidebar()}}function render(focus=false){$('title').value=data.title;$('editor').innerHTML='';data.blocks.forEach((b,i)=>{const el=document.createElement('div');el.className='block '+b.type;el.contentEditable='true';el.spellcheck=true;el.dataset.placeholder=labels[b.type];el.textContent=b.text;el.addEventListener('focus',()=>{active=i;$('kind').value=b.type});el.addEventListener('input',()=>{data.blocks[i].text=el.innerText;save();sidebar()});el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const next={scene:'action',action:'action',character:'dialogue',dialogue:'character',parenthetical:'dialogue',transition:'scene'}[b.type];data.blocks[i].text=el.innerText;data.blocks.splice(i+1,0,{id:uid(),type:next,text:''});active=i+1;save();render(true)}else if(e.key==='Tab'){e.preventDefault();data.blocks[i].text=el.innerText;b.type=types[(types.indexOf(b.type)+(e.shiftKey?types.length-1:1))%types.length];$('kind').value=b.type;save();render(true)}else if(e.key==='Backspace'&&el.innerText.trim()===''&&data.blocks.length>1){e.preventDefault();data.blocks.splice(i,1);active=Math.max(0,i-1);save();render(true)}});$('editor').appendChild(el)});sidebar();if(focus)focusBlock(active)}function sidebar(){const scenes=$('scenes');scenes.innerHTML='';data.blocks.forEach((b,i)=>{if(b.type==='scene'){const btn=document.createElement('button');btn.className='scene-link';btn.textContent=(scenes.children.length+1)+'. '+(b.text||'Nova cena');btn.onclick=()=>{active=i;focusBlock(i)};scenes.appendChild(btn)}});const names=[...new Set(data.blocks.filter(b=>b.type==='character').map(b=>b.text.trim().toUpperCase()).filter(Boolean))];$('characters').textContent=names.join(' • ')||'Nenhum personagem ainda'}$('title').oninput=e=>{data.title=e.target.value;save()};$('kind').onchange=e=>{data.blocks[active].type=e.target.value;save();render(true)};$('add').onclick=()=>{data.blocks.splice(active+1,0,{id:uid(),type:$('kind').value,text:''});active++;save();render(true)};$('remove').onclick=()=>{if(data.blocks.length===1){data.blocks[0].text=''}else data.blocks.splice(active,1);active=Math.min(active,data.blocks.length-1);save();render(true)};$('new').onclick=()=>{if(confirm('Criar novo roteiro? Exporte o atual antes, se quiser guardar uma cópia.')){data={title:'NOVO ROTEIRO',blocks:[{id:uid(),type:'scene',text:''}]};active=0;save();render(true)}};function md(){return '# '+data.title+'\n\n'+data.blocks.map(b=>({scene:'## ',character:'### ',transition:'> ',parenthetical:'',action:'',dialogue:''}[b.type]||'')+b.text).join('\n\n')+'\n'}$('export').onclick=()=>{const blob=new Blob([md()],{type:'text/markdown;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(data.title||'roteiro').replace(/[^a-z0-9À-ÿ_-]+/gi,'_')+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)};$('print').onclick=()=>window.print();$('import').onclick=()=>$('file').click();$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!confirm('Importar substituirá o roteiro atual neste navegador. Continuar?'))return;const content=await f.text();const lines=content.split(/\r?\n/).filter(x=>x.trim());const blocks=[];let title=f.name.replace(/\.(md|txt)$/i,'');for(const line of lines){if(line.startsWith('# ')&&blocks.length===0){title=line.slice(2);continue}let type='action',t=line;if(/^## /.test(t)){type='scene';t=t.slice(3)}else if(/^### /.test(t)){type='character';t=t.slice(4)}else if(/^> /.test(t)){type='transition';t=t.slice(2)}else if(/^\(?INT\.|^EXT\./i.test(t))type='scene';blocks.push({id:uid(),type,text:t})}data={title,blocks:blocks.length?blocks:[{id:uid(),type:'scene',text:''}]};active=0;save();render();e.target.value=''};render();</script><style>@media print{body{background:white}header,aside,.toolbar,.hint{display:none!important}.layout{display:block}.workspace{padding:0}.page{box-shadow:none;max-width:none;min-height:0;padding:10mm 16mm}.block{break-inside:avoid}.titleinput{margin-bottom:20mm}@page{size:A4;margin:15mm}}</style>
+<style>
+@media(max-width:700px){
+body{font-size:16px}header{padding:12px 12px 8px;gap:8px}
+header>div:last-child{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+header button{flex:1;min-height:42px;padding:8px 7px;font-size:13px}
+header h1{font-size:18px}.pill{font-size:10px}
+aside{padding:8px 12px}aside h2{margin:5px 0;font-size:11px}
+#characters{display:none}#scenes{padding:2px 0}
+.scene-link{min-width:145px;max-width:220px;min-height:36px;padding:7px;font-size:12px}
+.workspace{padding:8px 0 95px}.toolbar{padding:0 10px 8px;margin:0;gap:6px}
+.toolbar label{font-size:12px}.toolbar select{flex:1;min-width:140px;min-height:44px}
+.toolbar button{min-height:42px;font-size:12px;flex:1}
+.page{margin:0 7px;padding:24px 15px 80px;min-height:70vh;border-radius:8px}
+.titleinput{font-size:19px;margin-bottom:20px}
+.block{font-size:15px;line-height:1.65;min-height:38px;padding:5px 2px;margin-bottom:8px;border-radius:4px}
+.block:focus{background:#f2eee4;box-shadow:inset 3px 0 #bd8c47;padding-left:7px}
+.block.character{margin-left:12%;margin-right:12%}
+.block.dialogue{margin-left:8%;margin-right:8%}
+.block.parenthetical{margin-left:10%;margin-right:10%}
+.hint{padding:0 14px;font-size:12px}
+#mobileDock{position:fixed;bottom:0;left:0;right:0;display:flex;gap:5px;padding:9px 8px max(9px,env(safe-area-inset-bottom));background:#1b1e28;border-top:1px solid #4b5267;z-index:20;box-shadow:0 -6px 20px #0005}
+#mobileDock button{flex:1;min-width:0;padding:10px 2px;min-height:48px;font-size:11px;border-radius:9px}
+#mobileDock button.selected{background:#e8bb78;color:#17151a;font-weight:bold}
+}
+@media(min-width:701px){#mobileDock{display:none}}
+@media print{#mobileDock{display:none!important}}
+</style>
+<nav id="mobileDock" aria-label="Atalhos para escrever roteiro">
+<button data-type="scene">🎬<br>Cena</button>
+<button data-type="action">✍️<br>Ação</button>
+<button data-type="character">👤<br>Person.</button>
+<button data-type="dialogue">💬<br>Diálogo</button>
+<button id="mobileNext">＋<br>Próximo</button>
+</nav>
+<script>
+(function(){
+ const dock=document.getElementById('mobileDock');
+ function highlight(){
+  dock.querySelectorAll('[data-type]').forEach(btn=>btn.classList.toggle('selected',data.blocks[active]?.type===btn.dataset.type));
+ }
+ dock.querySelectorAll('[data-type]').forEach(btn=>btn.addEventListener('click',()=>{
+  if(!data.blocks[active])return;
+  data.blocks[active].type=btn.dataset.type;
+  document.getElementById('kind').value=btn.dataset.type;
+  save();render(true);highlight();
+ }));
+ document.getElementById('mobileNext').addEventListener('click',()=>{
+  const current=data.blocks[active]?.type||'action';
+  const next={scene:'action',action:'action',character:'dialogue',dialogue:'character',parenthetical:'dialogue',transition:'scene'}[current];
+  data.blocks.splice(active+1,0,{id:uid(),type:next,text:''});
+  active++;save();render(true);highlight();
+ });
+ document.getElementById('editor').addEventListener('focusin',()=>setTimeout(highlight,0));
+ document.getElementById('kind').addEventListener('change',()=>setTimeout(highlight,0));
+ highlight();
+})();
+</script>
+
+<style>
+@media(max-width:700px){
+ #mobileDock{box-sizing:border-box;transition:none;will-change:top;bottom:auto;}
+ #mobileDock.keyboard-open{padding-bottom:7px;}
+}
+</style>
+<script>
+/* V4: track the visible viewport, avoiding double keyboard offsets in Brave. */
+(function(){
+ const dock=document.getElementById('mobileDock');
+ const vv=window.visualViewport;
+ if(!dock)return;
+ let raf=0;
+ function adjust(){
+   raf=0;
+   if(window.innerWidth>700){dock.style.top='';dock.style.bottom='';return;}
+   const viewHeight=vv?vv.height:window.innerHeight;
+   const viewTop=vv?vv.offsetTop:0;
+   const layoutHeight=document.documentElement.clientHeight;
+   const hidden=Math.max(0,layoutHeight-(viewTop+viewHeight));
+   const keyboardOpen=hidden>100 && document.activeElement &&
+     (document.activeElement.isContentEditable || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName));
+   dock.classList.toggle('keyboard-open',!!keyboardOpen);
+   // In browsers that resize the layout viewport, hidden is zero: anchor normally.
+   // With a visual-only resize, position within the visible viewport instead.
+   const bottomEdge=viewTop+viewHeight;
+   const top=Math.max(viewTop,bottomEdge-dock.offsetHeight);
+   dock.style.bottom='auto';
+   dock.style.top=Math.round(top)+'px';
+ }
+ function schedule(){if(!raf)raf=requestAnimationFrame(adjust);}
+ if(vv){vv.addEventListener('resize',schedule);vv.addEventListener('scroll',schedule);}
+ window.addEventListener('resize',schedule);
+ window.addEventListener('orientationchange',schedule);
+ document.addEventListener('focusin',schedule);
+ document.addEventListener('focusout',schedule);
+ new ResizeObserver(schedule).observe(dock);
+ schedule();
+})();
+</script>
+
+<style>
+#projectBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 15px;background:#242835;border-bottom:1px solid #454b60}
+#projectBar strong{flex:1;min-width:120px}#projectBar button{font-size:13px;padding:9px 11px}
+#projectDialog{border:1px solid #525a70;border-radius:15px;background:#1b1e28;color:#fff;width:min(94vw,650px);max-height:85vh;overflow:auto;padding:20px}
+#projectDialog::backdrop{background:#000b}.projectItem{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #41475b}.projectItem span{flex:1;min-width:150px}.projectItem small{display:block}.projectItem button{padding:8px}.projectActions{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+#characterPanel{padding:12px 16px;background:#242835;border-bottom:1px solid #454b60;display:none}#characterPanel.open{display:block}#characterPanel input{min-height:40px;background:#171a24;color:#fff;border:1px solid #555d70;border-radius:7px;padding:8px;max-width:100%;width:220px}#characterList{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.characterCard{border:1px solid #555d70;border-radius:8px;padding:9px;min-width:140px}.characterCard small{display:block;max-width:200px;overflow-wrap:anywhere}
+@media(max-width:700px){#projectBar{padding:8px;gap:5px}#projectBar button{padding:9px 7px;font-size:12px}#projectDialog{padding:12px}.projectItem{gap:5px}.projectItem button{font-size:12px}}
+</style>
+<div id="projectBar"><strong id="currentProject">🎬 Meu roteiro</strong><button id="manageProjects">📁 Roteiros</button><button id="toggleCharacters">👥 Personagens</button><button id="exportFountain">↓ Fountain</button></div>
+<section id="characterPanel"><strong>Personagens deste roteiro</strong><div class="projectActions"><input id="characterName" placeholder="Nome do personagem" aria-label="Nome"><input id="characterDesc" placeholder="Descrição (opcional)" aria-label="Descrição"><button id="addCharacter">Adicionar</button></div><div id="characterList"></div></section>
+<dialog id="projectDialog"><h2>📁 Meus roteiros</h2><p style="color:#bfc3cf;font-size:13px">Projetos salvos neste navegador. Faça backups regularmente.</p><div class="projectActions"><button id="createProject" class="primary">+ Novo roteiro</button><button id="backupProjects">↓ Backup completo</button><button id="restoreProjects">↑ Restaurar backup</button><input type="file" id="backupFile" accept=".json" hidden></div><div id="projectList"></div><div style="text-align:right;margin-top:14px"><button id="closeProjects">Fechar</button></div></dialog>
+<script>
+(function(){
+ const STORE='roteirista-projects-v5', ACTIVE='roteirista-active-v5';
+ const el=id=>document.getElementById(id);
+ const ident=()=>Math.random().toString(36).slice(2)+Date.now().toString(36);
+ let projects=[];let selected='';
+ try{projects=JSON.parse(localStorage.getItem(STORE))||[]}catch{}
+ if(!Array.isArray(projects))projects=[];
+ if(!projects.length){const id=ident();projects=[{id,title:data.title||'Meu roteiro',blocks:JSON.parse(JSON.stringify(data.blocks)),characters:[],archived:false,updated:Date.now()}];selected=id;}
+ else selected=localStorage.getItem(ACTIVE)||projects.find(p=>!p.archived)?.id||projects[0].id;
+ if(!projects.some(p=>p.id===selected))selected=projects[0].id;
+ function current(){return projects.find(p=>p.id===selected)}
+ function persist(){try{localStorage.setItem(STORE,JSON.stringify(projects));localStorage.setItem(ACTIVE,selected);el('currentProject').textContent='🎬 '+(current()?.title||'Roteiro')}catch{el('status').textContent='Falha ao salvar projetos'}}
+ function capture(){const p=current();if(!p)return;p.title=data.title;p.blocks=JSON.parse(JSON.stringify(data.blocks));p.updated=Date.now();persist()}
+ const originalSave=save;
+ save=function(){originalSave();capture()};
+ function load(id){if(current())capture();selected=id;const p=current();data={title:p.title,blocks:JSON.parse(JSON.stringify(p.blocks))};active=0;originalSave();persist();render();showCharacters()}
+ data={title:current().title,blocks:JSON.parse(JSON.stringify(current().blocks))};originalSave();persist();render();
+ function escape(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ function manager(){capture();const list=el('projectList');list.innerHTML='';projects.forEach(p=>{const item=document.createElement('div');item.className='projectItem';item.innerHTML='<span><b>'+escape(p.title)+'</b><small>'+(p.archived?'Arquivado · ':'')+new Date(p.updated).toLocaleDateString('pt-BR')+' · '+p.blocks.filter(b=>b.type==='scene').length+' cenas</small></span>';const actions=[['Abrir',()=>{p.archived=false;load(p.id);el('projectDialog').close()}],['Renomear',()=>{const name=prompt('Nome do roteiro',p.title);if(name?.trim()){p.title=name.trim();if(p.id===selected){data.title=p.title;originalSave();render()}persist();manager()}}],['Duplicar',()=>{projects.unshift({...JSON.parse(JSON.stringify(p)),id:ident(),title:p.title+' (cópia)',archived:false,updated:Date.now()});persist();manager()}],[p.archived?'Desarquivar':'Arquivar',()=>{p.archived=!p.archived;persist();manager()}],['Excluir',()=>{if(projects.length===1){alert('Mantenha ao menos um roteiro.');return}if(confirm('Excluir definitivamente '+p.title+'? Faça backup antes.')){projects=projects.filter(x=>x.id!==p.id);if(selected===p.id)selected=projects[0].id;persist();load(selected);manager()}}]];actions.forEach(([name,fn])=>{const b=document.createElement('button');b.textContent=name;b.onclick=fn;item.appendChild(b)});list.appendChild(item)})}
+ el('manageProjects').onclick=()=>{manager();el('projectDialog').showModal()};el('closeProjects').onclick=()=>el('projectDialog').close();
+ el('createProject').onclick=()=>{const name=prompt('Título do novo roteiro','NOVO ROTEIRO');if(!name?.trim())return;capture();const p={id:ident(),title:name.trim(),blocks:[{id:ident(),type:'scene',text:'INT. LOCAL - DIA'}],characters:[],archived:false,updated:Date.now()};projects.unshift(p);selected=p.id;persist();load(p.id);el('projectDialog').close()};
+ // Replace the old destructive New action with project creation.
+ el('new').onclick=()=>el('createProject').click();
+ function download(name,content,mime){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([content],{type:mime}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000)}
+ el('backupProjects').onclick=()=>{capture();download('roteirista_backup_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({format:'roteirista-v5',projects},null,2),'application/json')};
+ el('restoreProjects').onclick=()=>el('backupFile').click();
+ el('backupFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const backup=JSON.parse(await f.text());if(backup.format!=='roteirista-v5'||!Array.isArray(backup.projects)||!backup.projects.every(p=>p.id&&typeof p.title==='string'&&Array.isArray(p.blocks)))throw Error('Formato inválido');if(!confirm('Adicionar '+backup.projects.length+' roteiros do backup aos existentes?'))return;capture();for(const p of backup.projects)projects.push({...p,id:ident(),updated:Date.now()});persist();manager();alert('Backup importado.')}catch(err){alert('Não foi possível importar: '+err.message)}e.target.value=''};
+ el('exportFountain').onclick=()=>{capture();const content=data.blocks.map(b=>{const t=b.text.trim();if(b.type==='scene')return t.toUpperCase();if(b.type==='character')return t.toUpperCase();if(b.type==='transition')return t.toUpperCase();return t}).join('\n\n');download((data.title||'roteiro').replace(/[^a-z0-9À-ÿ_-]+/gi,'_')+'.fountain',content+'\n','text/plain;charset=utf-8')};
+ el('toggleCharacters').onclick=()=>{el('characterPanel').classList.toggle('open');showCharacters()};
+ function showCharacters(){const p=current();if(!p.characters)p.characters=[];const fromBlocks=[...new Set(data.blocks.filter(b=>b.type==='character').map(b=>b.text.trim().toUpperCase()).filter(Boolean))];fromBlocks.forEach(name=>{if(!p.characters.some(c=>c.name===name))p.characters.push({name,desc:''})});const list=el('characterList');list.innerHTML='';p.characters.forEach((c,i)=>{const item=document.createElement('div');item.className='characterCard';const name=document.createElement('b');name.textContent=c.name;const desc=document.createElement('small');desc.textContent=c.desc||'Sem descrição';const edit=document.createElement('button');edit.textContent='Editar';edit.onclick=()=>{const n=prompt('Nome',c.name);if(!n?.trim())return;const d=prompt('Descrição',c.desc||'');c.name=n.trim().toUpperCase();if(d!==null)c.desc=d;persist();showCharacters()};item.append(name,desc,edit);list.appendChild(item)});persist()}
+ el('addCharacter').onclick=()=>{const name=el('characterName').value.trim().toUpperCase();if(!name)return;const p=current();if(!p.characters)p.characters=[];if(p.characters.some(c=>c.name===name)){alert('Personagem já cadastrado');return}p.characters.push({name,desc:el('characterDesc').value.trim()});el('characterName').value='';el('characterDesc').value='';persist();showCharacters()};
+ // Existing editor events call the wrapped save(), preserving all V4 editing behavior.
+})();
+</script>
+</body></html>
